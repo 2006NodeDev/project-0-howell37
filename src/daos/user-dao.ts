@@ -138,10 +138,11 @@ export async function getUpdatedUser(updatedUser: User): Promise<User> {
         [roleId, updatedUser.userId]
       );
     }
-
+    //save all changes
     await client.query("COMMIT;");
     return updatedUser;
   } catch (error) {
+    //get rid of changes
     client && client.query("ROLLBACK;");
     if (error) {
       throw new Error(UnhandledError());
