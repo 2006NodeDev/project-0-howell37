@@ -34,12 +34,9 @@ export async function getUserByUsernameAndPassword(
       throw new Error(AuthError());
     }
     return UserDTOtoUserConvertor(results.rows[0]);
-  } catch (e) {
-    if (e.statusCode === 400) {
-      throw new error();
-    }
-    console.log("Error 2:", e);
-    throw new error();
+  } catch (error) {
+    console.log(error);
+    throw new Error(AuthError());
   } finally {
     client && client.release();
   }
