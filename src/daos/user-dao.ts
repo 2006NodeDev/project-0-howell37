@@ -3,12 +3,9 @@ import { PoolClient } from "pg";
 import { connectionPool } from ".";
 import { UserDTOtoUserConvertor } from "../utils/userConverter";
 import { error } from "console";
-import {
-  NotFoundError,
-  UnhandledError,
-  AuthError,
-  NoUserFoundError,
-} from "../errors/authFailed";
+import { NotFoundError } from "../errors/NotFoundError";
+import { AuthenticationFailureError } from "../errors/AuthenticationFailedError";
+import { UserNotFoundError } from "../errors/UserNotFoundError";
 
 export async function getUserByUsernameAndPassword(
   username: string,
@@ -31,12 +28,12 @@ export async function getUserByUsernameAndPassword(
       [username, password]
     );
     if (results.rowCount === 0) {
-      throw new Error(AuthError());
+      throw new AuthenticationFailureError();
     }
     return UserDTOtoUserConvertor(results.rows[0]);
   } catch (error) {
     console.log(error);
-    throw new Error(AuthError());
+    throw new AuthenticationFailureError();
   } finally {
     client && client.release();
   }
@@ -52,7 +49,7 @@ export async function getAllUsers(): Promise<User[]> {
     return results.rows.map(UserDTOtoUserConvertor);
   } catch (e) {
     console.log("Error 3", e);
-    throw new Error(NotFoundError());
+    throw new NotFoundError();
   } finally {
     client && client.release();
   }
@@ -72,9 +69,9 @@ export async function getUserById(userId: number): Promise<User> {
     }
     return UserDTOtoUserConvertor(results.rows[0]);
   } catch (error) {
-    if (error) throw new Error(NoUserFoundError());
+    if (error) throw new UserNotFoundError();
     console.log("Error 4", error);
-    throw new Error(UnhandledError());
+    throw new Error("UnhandledError");
   } finally {
     client && client.release();
   }
@@ -129,7 +126,7 @@ export async function getUpdatedUser(updatedUser: User): Promise<User> {
         [updatedUser.role]
       );
       if (roleId.rowCount === 0) {
-        throw new Error(NotFoundError());
+        throw new UserNotFoundError();
       }
       roleId = roleId.rows[0].role_id;
       await client.query(
@@ -141,14 +138,60 @@ export async function getUpdatedUser(updatedUser: User): Promise<User> {
     //save all changes
     await client.query("COMMIT;");
     return updatedUser;
-  } catch (error) {
-    //get rid of changes
+  } catch (e) {
     client && client.query("ROLLBACK;");
-    if (error) {
-      throw new Error(UnhandledError());
+    if (e.message === "Role Not Found") {
+      throw new NotFoundError();
     }
+    console.log(e);
+    throw new Error("Unhandled Error");
+  } finally {
+    client && client.release();
+  }
+}
+//Create New Users
+export async function saveUser(newUser: User): Promise<User> {
+  let client: PoolClient;
+  try {
+    client = await connectionPool.connect();
+    await client.query("BEGIN;");
+    let roleId = await client.query(
+      `select r."role_id" 
+                                      from expense_reimbursement.roles r 
+                                      where r."role" = $1`,
+      [newUser.role]
+    );
+    if (roleId.rowCount === 0) {
+      throw new Error("Role Not Found");
+    }
+    roleId = roleId.rows[0].role_id;
+    let results = await client.query(
+      `insert into expense_reimbursement.users 
+                                      ("username", "password", 
+                                          "firstname", "lastname", 
+                                          "email", "role")
+                                      values($1,$2,$3,$4,$5,$6) 
+                                      returning "user_id"`,
+      [
+        newUser.username,
+        newUser.password,
+        newUser.firstname,
+        newUser.lastname,
+        newUser.email,
+        roleId,
+      ]
+    );
+    newUser.userId = results.rows[0].user_id;
+    await client.query("COMMIT;");
+    return newUser;
+  } catch (error) {
+    client && client.query("ROLLBACK;");
+    if (error.message === "Role Not Found") {
+      throw new UserNotFoundError();
+    }
+    console.log("could not create a user");
     console.log(error);
-    throw new Error(UnhandledError());
+    throw new Error("Unhandled Error Occured");
   } finally {
     client && client.release();
   }

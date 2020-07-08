@@ -5,8 +5,8 @@ import { sessionMiddleware } from "./middleware/sessions-middleware";
 import { userRouter } from "./routers/userRouter";
 import { reimbursementRouter } from "./routers/reimburementRouter";
 import { getUserByUsernameAndPassword } from "./daos/user-dao";
-
-import { NoUserFoundError } from "./errors/authFailed";
+import { UserNotFoundError } from "./errors/UserNotFoundError";
+import { reimbursementAuthorRouter } from "./routers/reimbursementAuthorRouter";
 
 let PORT = process.env.PORT;
 const app = express(); //app represents entire empress application
@@ -16,12 +16,13 @@ app.use(sessionMiddleware);
 
 app.use("/users", userRouter);
 app.use("/reimbursements", reimbursementRouter);
+app.use("/reimbursements/author", reimbursementAuthorRouter);
 
 app.post("/login", async (req: Request, res: Response, next: NextFunction) => {
   let username = req.body.username;
   let password = req.body.password;
   if (!username || !password) {
-    throw new Error(NoUserFoundError());
+    throw new UserNotFoundError();
   } else {
     try {
       let user = await getUserByUsernameAndPassword(username, password);

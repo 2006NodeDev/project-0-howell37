@@ -1,7 +1,7 @@
 import { reimbursementDTO } from "../dtos/reimbursement-dto";
 import { Reimbursement } from "../models/Reimbursement";
 
-export function ReimbursementDTOtoReimbursementConvertor(
+export function ReimbursementDTOtoReimbursementConverter(
   rdto: reimbursementDTO
 ): Reimbursement {
   return {
@@ -12,7 +12,13 @@ export function ReimbursementDTOtoReimbursementConvertor(
     dateResolved: rdto.date_resolved,
     description: rdto.description,
     resolver: rdto.resolver,
-    status: rdto.status,
-    type: rdto.type,
+    status: {
+      status: rdto.status,
+      statusId: rdto.status_id,
+    },
+    type: {
+      type: rdto.type,
+      typeId: rdto.type_id,
+    },
   };
 }

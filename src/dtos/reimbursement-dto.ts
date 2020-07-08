@@ -6,6 +6,8 @@ export class reimbursementDTO {
   date_resolved: bigint;
   description: string;
   resolver: number;
-  status: number;
-  type: number;
+  status: string;
+  status_id: number;
+  type: string;
+  type_id: number;
 }

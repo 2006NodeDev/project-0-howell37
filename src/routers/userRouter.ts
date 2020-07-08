@@ -1,8 +1,13 @@
 import express, { Request, Response, NextFunction } from "express";
 import { authorizationMiddleware } from "../middleware/authorization-middleware";
 import { authenticationMiddleware } from "../middleware/authentication-middleware";
-import { getAllUsers, getUserById, getUpdatedUser } from "../daos/user-dao";
-
+import {
+  getAllUsers,
+  getUserById,
+  getUpdatedUser,
+  saveUser,
+} from "../daos/user-dao";
+import { UserNotFoundError } from "../errors/UserNotFoundError";
 import { User } from "src/models/User";
 
 export let userRouter = express.Router();
@@ -56,7 +61,7 @@ userRouter.patch(
       role,
     } = req.body;
     if (!userId) {
-      res.send("UserI is the minimum requirements to update");
+      res.send("UserId is the minimum requirements to update");
     } else {
       let updatedUser: User = {
         userId,
@@ -81,6 +86,34 @@ userRouter.patch(
       } catch (e) {
         next(e);
       }
+    }
+  }
+);
+
+// creating a new user to the database
+userRouter.post(
+  "/",
+  async (req: Request, res: Response, next: NextFunction) => {
+    console.log(req.body);
+    let { username, password, firstname, lastname, email, role } = req.body;
+    if (username && password && firstname && lastname && email && role) {
+      let newUser: User = {
+        userId: 0,
+        username,
+        password,
+        firstname,
+        lastname,
+        email,
+        role,
+      };
+      try {
+        let savedUser = await saveUser(newUser);
+        res.json(savedUser);
+      } catch (e) {
+        next(e);
+      }
+    } else {
+      next(new UserNotFoundError());
     }
   }
 );
