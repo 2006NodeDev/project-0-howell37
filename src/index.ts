@@ -8,7 +8,6 @@ import { getUserByUsernameAndPassword } from "./daos/user-dao";
 import { UserNotFoundError } from "./errors/UserNotFoundError";
 import { reimbursementAuthorRouter } from "./routers/reimbursementAuthorRouter";
 
-let PORT = process.env.PORT;
 const app = express(); //app represents entire empress application
 app.use(express.json()); //convert request body to js object
 
@@ -39,6 +38,6 @@ app.post("/login", async (req: Request, res: Response, next: NextFunction) => {
 //   res.status(500).send("Houston we have a PROBLEM");
 // });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on ${PORT}`);
+app.listen(3030, () => {
+  console.log(`Server is running on 3030`);
 });
